@@ -3,6 +3,8 @@ import os.path as osp
 import tempfile
 import xml.etree.ElementTree as ET
 from ctypes import byref
+
+import gym.spaces
 import numpy as np
 
 from rllab.misc import logger
@@ -131,7 +133,7 @@ class GatherViewer(MjViewer):
                 draw_rect(20 * (idx + 1), 60, 5, 50)
 
 
-class GatherEnv(ProxyEnv, Serializable):
+class GatherEnv(ProxyEnv, Serializable, gym.Env):
     MODEL_CLASS = None
     ORI_IND = None
 
@@ -221,8 +223,10 @@ class GatherEnv(ProxyEnv, Serializable):
         inner_env = model_cls(*args, file_path=file_path, **kwargs)
         # pylint: enable=not-callable
         ProxyEnv.__init__(self, inner_env)  # to access the inner env, do self.wrapped_env
+        print("INITIALIZED!")
 
     def reset(self, also_wrapped=True):
+        print("RESETING")
         self.objects = []
         existing = set()
         while len(self.objects) < self.n_apples:
@@ -254,9 +258,11 @@ class GatherEnv(ProxyEnv, Serializable):
 
         if also_wrapped:
             self.wrapped_env.reset()
+        print("RESET!!!!!")
         return self.get_current_obs()
 
     def step(self, action):
+        print('stepping gather')
         _, inner_rew, done, info = self.wrapped_env.step(action)
         info['inner_rew'] = inner_rew
         info['outer_rew'] = 0
@@ -338,25 +344,26 @@ class GatherEnv(ProxyEnv, Serializable):
     def observation_space(self):
         shp = self.get_current_obs().shape
         ub = BIG * np.ones(shp)
-        return spaces.Box(ub * -1, ub)
+        # gym.spaces.Box
+        return gym.spaces.Box(ub * -1, ub)
 
     # space of only the robot observations (they go first in the get current obs)
     @property
     def robot_observation_space(self):
         shp = self.get_current_robot_obs().shape
         ub = BIG * np.ones(shp)
-        return spaces.Box(ub * -1, ub)
+        return gym.spaces.Box(ub * -1, ub)
 
     @property
     def maze_observation_space(self):
         shp = np.concatenate(self.get_readings()).shape
         ub = BIG * np.ones(shp)
-        return spaces.Box(ub * -1, ub)
+        return gym.spaces.Box(ub * -1, ub)
 
     @property
     @overrides
     def action_space(self):
-        return self.wrapped_env.action_space
+        return gym.spaces.Box(-1, 1, (8,)) #  self.wrapped_env.action_space
 
     @property
     def action_bounds(self):
