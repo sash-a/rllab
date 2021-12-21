@@ -217,16 +217,14 @@ class GatherEnv(ProxyEnv, Serializable, gym.Env):
                 name="wall4",
                 pos="%d 0 0" % walldist,
                 size="0.5 %d.5 1" % walldist))
-        _, file_path = tempfile.mkstemp(text=True)
+        _, file_path = tempfile.mkstemp(text=True, suffix='.xml')
         tree.write(file_path)
         # pylint: disable=not-callable
         inner_env = model_cls(*args, file_path=file_path, **kwargs)
         # pylint: enable=not-callable
         ProxyEnv.__init__(self, inner_env)  # to access the inner env, do self.wrapped_env
-        print("INITIALIZED!")
 
     def reset(self, also_wrapped=True):
-        print("RESETING")
         self.objects = []
         existing = set()
         while len(self.objects) < self.n_apples:
@@ -258,12 +256,11 @@ class GatherEnv(ProxyEnv, Serializable, gym.Env):
 
         if also_wrapped:
             self.wrapped_env.reset()
-        print("RESET!!!!!")
         return self.get_current_obs()
 
     def step(self, action):
-        print('stepping gather')
         _, inner_rew, done, info = self.wrapped_env.step(action)
+        done = False
         info['inner_rew'] = inner_rew
         info['outer_rew'] = 0
         if done:
@@ -285,7 +282,7 @@ class GatherEnv(ProxyEnv, Serializable, gym.Env):
             else:
                 new_objs.append(obj)
         self.objects = new_objs
-        done = len(self.objects) == 0
+        # done = len(self.objects) == 0
         return Step(self.get_current_obs(), reward, done, **info)
 
     def get_readings(self):  # equivalent to get_current_maze_obs in maze_env.py
@@ -363,7 +360,7 @@ class GatherEnv(ProxyEnv, Serializable, gym.Env):
     @property
     @overrides
     def action_space(self):
-        return gym.spaces.Box(-1, 1, (8,)) #  self.wrapped_env.action_space
+        return gym.spaces.Box(self.wrapped_env.action_space.low, self.wrapped_env.action_space.high, self.wrapped_env.action_space.shape)
 
     @property
     def action_bounds(self):

@@ -1,6 +1,6 @@
 from rllab.envs.mujoco.gather.gather_env import GatherEnv
-from rllab.envs.mujoco.ant_env import AntEnv
-
+# from rllab.envs.mujoco.ant_env import AntEnv
+from environments.ant import AntEnv
 
 class AntGatherEnv(GatherEnv):
 
